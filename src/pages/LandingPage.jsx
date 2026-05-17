@@ -5,9 +5,15 @@ import { getErrorMessage, getFieldErrors } from '../utils/errorHandler';
 import TopNav from '../components/TopNav';
 import { API_BASE } from '../config';
 
+const AUTH_BASE =
+  import.meta.env.VITE_AUTH_BASE_URL ||
+  import.meta.env.VITE_API_BASE_URL ||
+  API_BASE ||
+  'http://localhost:8080';
+
 // ── Auth Modal ────────────────────────────────────────────────
 function AuthModal({ mode: initialMode, onClose, onSuccess }) {
-  const [mode, setMode] = useState(initialMode); // 'login' | 'register'
+  const [mode, setMode] = useState(initialMode);
   const [form, setForm] = useState({ fullName: '', email: '', password: '', phone: '' });
   const [errors, setErrors] = useState({});
   const [globalError, setGlobalError] = useState('');
@@ -24,12 +30,10 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
     e.preventDefault();
     setGlobalError('');
 
-    let result;
-    if (mode === 'login') {
-      result = await login(form.email, form.password);
-    } else {
-      result = await register(form.fullName, form.email, form.password, form.phone);
-    }
+    const result =
+      mode === 'login'
+        ? await login(form.email, form.password)
+        : await register(form.fullName, form.email, form.password, form.phone);
 
     if (result.success) {
       toast.success(mode === 'login' ? 'Welcome back!' : 'Account created! Welcome to ResumeAI.');
@@ -42,7 +46,6 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-8">
-        {/* Header */}
         <div className="flex justify-between items-center mb-6">
           <div>
             <h2 className="text-2xl font-bold text-slate-900">
@@ -52,7 +55,10 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
               {mode === 'login' ? "Don't have an account? " : 'Already have an account? '}
               <button
                 className="text-indigo-600 font-semibold hover:underline"
-                onClick={() => { setMode(mode === 'login' ? 'register' : 'login'); setGlobalError(''); }}
+                onClick={() => {
+                  setMode(mode === 'login' ? 'register' : 'login');
+                  setGlobalError('');
+                }}
               >
                 {mode === 'login' ? 'Sign up' : 'Sign in'}
               </button>
@@ -63,7 +69,6 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
           </button>
         </div>
 
-        {/* Error banner */}
         {globalError && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm flex items-center gap-2">
             <span className="material-symbols-outlined text-base">error</span>
@@ -128,8 +133,15 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
             className="btn-primary w-full justify-center py-3 text-base disabled:opacity-60 disabled:cursor-not-allowed"
           >
             {loading ? (
-              <><span className="animate-spin material-symbols-outlined text-base">progress_activity</span> Please wait...</>
-            ) : mode === 'login' ? 'Sign In' : 'Create Account'}
+              <>
+                <span className="animate-spin material-symbols-outlined text-base">progress_activity</span>
+                Please wait...
+              </>
+            ) : mode === 'login' ? (
+              'Sign In'
+            ) : (
+              'Create Account'
+            )}
           </button>
         </form>
 
@@ -144,7 +156,7 @@ function AuthModal({ mode: initialMode, onClose, onSuccess }) {
           </div>
           <div className="mt-6">
             <a
-              href={`${import.meta.env.VITE_AUTH_URL || 'http://localhost:8081'}/oauth2/authorization/google`}
+              href={`${AUTH_BASE}/oauth2/authorization/google`}
               className="w-full flex items-center justify-center gap-3 px-4 py-2.5 border border-slate-300 rounded-lg shadow-sm bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
             >
               <img src="https://www.svgrepo.com/show/475656/google-color.svg" alt="Google" className="w-5 h-5" />
@@ -193,23 +205,25 @@ function TemplatePreviewSection({ onSelect }) {
   );
 }
 
-// ── Landing Page ──────────────────────────────────────────────
 export default function LandingPage({ onNavigate }) {
-  const [authMode, setAuthMode] = useState(null); // null | 'login' | 'register'
+  const [authMode, setAuthMode] = useState(null);
   const { isAuthenticated } = useAuth();
 
-  function openLogin() { setAuthMode('login'); }
-  function openRegister() { setAuthMode('register'); }
+  function openLogin() {
+    setAuthMode('login');
+  }
+
+  function openRegister() {
+    setAuthMode('register');
+  }
+
   function handleAuthSuccess() {
     setAuthMode(null);
-    // Route admin users to the admin panel, everyone else to dashboard
 
     const stored = localStorage.getItem('user');
-
     const user = stored ? JSON.parse(stored) : {};
 
     onNavigate(user?.role === 'ADMIN' ? 'admin' : 'dashboard');
-
   }
 
   return (
@@ -231,7 +245,6 @@ export default function LandingPage({ onNavigate }) {
       </nav>
 
       <main className="max-w-[1280px] mx-auto px-6 lg:px-8">
-        {/* Hero */}
         <section className="py-20 grid lg:grid-cols-2 gap-16 items-center">
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-3 py-1 bg-indigo-50 border border-indigo-100 rounded-full">
@@ -266,7 +279,6 @@ export default function LandingPage({ onNavigate }) {
             </div>
           </div>
 
-          {/* Resume preview card */}
           <div className="relative">
             <div className="bg-white rounded-xl shadow-2xl border border-slate-100 overflow-hidden max-w-[400px] mx-auto transform rotate-2 hover:rotate-0 transition-transform duration-500 p-8">
               <div className="border-b-4 border-indigo-600 pb-4 mb-4">
@@ -277,7 +289,10 @@ export default function LandingPage({ onNavigate }) {
                 <p className="text-[9px] font-bold text-indigo-600 uppercase tracking-widest">Experience</p>
                 <p className="text-xs font-bold text-slate-900">Lead Designer @ Stripe</p>
                 {['Led design system team of 12, reducing handoff time 40%.', 'Redesigned merchant dashboard → +15% DAU.'].map((b, i) => (
-                  <p key={i} className="text-[10px] text-slate-600 flex gap-1"><span className="text-indigo-400">•</span>{b}</p>
+                  <p key={i} className="text-[10px] text-slate-600 flex gap-1">
+                    <span className="text-indigo-400">•</span>
+                    {b}
+                  </p>
                 ))}
               </div>
             </div>
@@ -291,7 +306,6 @@ export default function LandingPage({ onNavigate }) {
           </div>
         </section>
 
-        {/* Features */}
         <section className="py-16">
           <div className="text-center mb-12">
             <h2 className="text-4xl font-bold text-slate-900 mb-3">Supercharge Your Job Search</h2>
@@ -312,10 +326,8 @@ export default function LandingPage({ onNavigate }) {
           </div>
         </section>
 
-        {/* Templates Preview */}
         <TemplatePreviewSection onSelect={openRegister} />
 
-        {/* CTA */}
         <section className="py-12 mb-8">
           <div className="bg-indigo-600 rounded-3xl p-12 text-center">
             <h2 className="text-4xl font-bold text-white mb-4">Ready to land your dream job?</h2>
